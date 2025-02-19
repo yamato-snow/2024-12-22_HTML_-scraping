@@ -13,7 +13,8 @@ def fetch_and_convert(url):
     # 本文の抽出（適宜セレクタを調整してください）
     # content = soup.find('div', class_='entry-content') # はてなブログ
     # content = soup.find('div', class_='note-common-styles__textnote-body') # note.com
-    content = soup.find('div', class_='View_columnContainer__Ls4IN') # zenn.dev
+    # content = soup.find('div', class_='View_main__AU6KW') # zenn.dev
+    content = soup.find('div', class_='bg-white p-4 md:p-6') # dev.classmethod.jp
     
     if content:
         # HTMLをMarkdownに変換
@@ -27,5 +28,5 @@ def fetch_and_convert(url):
 
 if __name__ == "__main__":
     # 処理を開始するURL
-    url = 'https://zenn.dev/kun432/scraps/15a98cb5e8930b'
+    url = 'https://dev.classmethod.jp/articles/aws-hands-on-for-beginners-serverless2/'
     fetch_and_convert(url)
