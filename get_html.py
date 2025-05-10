@@ -14,8 +14,17 @@ def fetch_and_convert(url):
     # content = soup.find('div', class_='entry-content') # はてなブログ
     # content = soup.find('div', class_='note-common-styles__textnote-body') # note.com
     # content = soup.find('div', class_='View_main__AU6KW') # zenn.dev
-    content = soup.find('div', class_='bg-white p-4 md:p-6') # dev.classmethod.jp
-    
+    # content = soup.find('div', class_='bg-white p-4 md:p-6') # dev.classmethod.jp
+    # content = soup.find('div', id='shopify-section-template--23575026860308__main') # kurashi-notion.com
+    # content = soup.find('main') # protopedia.net
+    # content = soup.find('body') # bizhint.jp
+    # content = soup.find('div', id='mainContent') # incdesign.jp
+    # content = soup.find('div', class_='article-main')
+    # content = soup.find('div', id='content') # weel.co.jp
+    content = soup.find('div', class_='p-items_main') # qiita.com
+    # content = soup.find('main', class_='cnt_main--v2') # sbbit.jp
+    # content = soup.find('div', id='colmunLeft') # dreamnews.jp
+
     if content:
         # HTMLをMarkdownに変換
         markdown = md(str(content))
@@ -28,5 +37,5 @@ def fetch_and_convert(url):
 
 if __name__ == "__main__":
     # 処理を開始するURL
-    url = 'https://dev.classmethod.jp/articles/aws-hands-on-for-beginners-serverless2/'
+    url = 'https://qiita.com/tichise/items/6c4a21d47dc7ee0968eb'
     fetch_and_convert(url)
