@@ -21,9 +21,10 @@ def fetch_and_convert(url):
     # content = soup.find('div', id='mainContent') # incdesign.jp
     # content = soup.find('div', class_='article-main')
     # content = soup.find('div', id='content') # weel.co.jp
-    content = soup.find('div', class_='p-items_main') # qiita.com
+    # content = soup.find('div', class_='p-items_main') # qiita.com
     # content = soup.find('main', class_='cnt_main--v2') # sbbit.jp
     # content = soup.find('div', id='colmunLeft') # dreamnews.jp
+    content = soup.find('main')
 
     if content:
         # HTMLをMarkdownに変換
@@ -37,5 +38,5 @@ def fetch_and_convert(url):
 
 if __name__ == "__main__":
     # 処理を開始するURL
-    url = 'https://qiita.com/tichise/items/6c4a21d47dc7ee0968eb'
+    url = 'https://www.cursor.com/ja/changelog/0-50'
     fetch_and_convert(url)
