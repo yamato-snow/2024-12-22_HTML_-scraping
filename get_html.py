@@ -24,7 +24,7 @@ def fetch_and_convert(url):
     # content = soup.find('div', class_='p-items_main') # qiita.com
     # content = soup.find('main', class_='cnt_main--v2') # sbbit.jp
     # content = soup.find('div', id='colmunLeft') # dreamnews.jp
-    content = soup.find('div', class_='l-container')
+    content = soup.find('main')
 
     if content:
         # HTMLをMarkdownに変換
@@ -38,5 +38,5 @@ def fetch_and_convert(url):
 
 if __name__ == "__main__":
     # 処理を開始するURL
-    url = 'https://mirasapo-plus.go.jp/hint/6666/'
+    url = 'https://www.cursor.com/ja/changelog/0-50'
     fetch_and_convert(url)
