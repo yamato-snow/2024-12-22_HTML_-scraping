@@ -24,8 +24,7 @@ def fetch_and_convert(url):
     # content = soup.find('div', class_='p-items_main') # qiita.com
     # content = soup.find('main', class_='cnt_main--v2') # sbbit.jp
     # content = soup.find('div', id='colmunLeft') # dreamnews.jp
-    content = soup.find('main')
-
+    content = soup.find('div', id='post-19813')
     if content:
         # HTMLをMarkdownに変換
         markdown = md(str(content))
@@ -38,5 +37,5 @@ def fetch_and_convert(url):
 
 if __name__ == "__main__":
     # 処理を開始するURL
-    url = 'https://www.cursor.com/ja/changelog/0-50'
+    url = 'https://junpei-sugiyama.com/wordpress-original-theme-14/'
     fetch_and_convert(url)
