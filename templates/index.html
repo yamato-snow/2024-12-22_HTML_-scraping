@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}変換{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-arrow-repeat"></i> HTML to Markdown 変換</h5>
+            </div>
+            <div class="card-body">
+                <form id="convertForm">
+                    <div class="mb-3">
+                        <label for="urlInput" class="form-label">URL <span class="text-danger">*</span></label>
+                        <input type="url" class="form-control" id="urlInput"
+                               placeholder="https://example.com/article" required>
+                        <div class="form-text">変換したいWebページのURLを入力してください</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="selectorInput" class="form-label">
+                            セレクタ <span class="text-muted">(オプション)</span>
+                        </label>
+                        <input type="text" class="form-control" id="selectorInput"
+                               placeholder="例: div.content, main, article#post">
+                        <div class="form-text">
+                            本文の抽出に使用するCSSセレクタ。空欄の場合は自動判定します。
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-primary" id="convertBtn">
+                            <i class="bi bi-arrow-right-circle"></i> 変換
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 結果表示エリア -->
+        <div id="resultArea" class="mt-4" style="display: none;">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0" id="resultTitle">変換結果</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary" id="copyBtn">
+                            <i class="bi bi-clipboard"></i> コピー
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" id="downloadBtn">
+                            <i class="bi bi-download"></i> ダウンロード
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <pre id="markdownOutput" class="bg-light p-3 rounded"></pre>
+                </div>
+                <div class="card-footer text-muted small">
+                    使用セレクタ: <span id="selectorUsed">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- エラー表示エリア -->
+        <div id="errorArea" class="mt-4" style="display: none;">
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span id="errorMessage"></span>
+            </div>
+        </div>
+
+        <!-- サポートサイト一覧 -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-list-check"></i> 自動判定対応サイト</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for site in supported_sites %}
+                    <div class="col-md-4 col-6 mb-2">
+                        <span class="badge bg-secondary">{{ site.name }}</span>
+                        <small class="text-muted d-block">{{ site.domains | join(', ') }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+                <p class="text-muted small mt-3 mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    上記以外のサイトでも <code>main</code> タグを使用して本文抽出を試みます。
+                    うまくいかない場合はセレクタを手動で指定してください。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('convertForm');
+    const urlInput = document.getElementById('urlInput');
+    const selectorInput = document.getElementById('selectorInput');
+    const convertBtn = document.getElementById('convertBtn');
+    const resultArea = document.getElementById('resultArea');
+    const errorArea = document.getElementById('errorArea');
+    const markdownOutput = document.getElementById('markdownOutput');
+    const resultTitle = document.getElementById('resultTitle');
+    const selectorUsed = document.getElementById('selectorUsed');
+    const copyBtn = document.getElementById('copyBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let currentMarkdown = '';
+    let currentTitle = '';
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        // UI状態更新
+        convertBtn.disabled = true;
+        convertBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 変換中...';
+        resultArea.style.display = 'none';
+        errorArea.style.display = 'none';
+
+        try {
+            const response = await fetch('/api/convert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: urlInput.value,
+                    selector: selectorInput.value
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                currentMarkdown = data.data.markdown;
+                currentTitle = data.data.title || 'untitled';
+
+                resultTitle.textContent = data.data.title || '変換結果';
+                markdownOutput.textContent = currentMarkdown;
+                selectorUsed.textContent = data.data.selector_used;
+                resultArea.style.display = 'block';
+
+                // 結果エリアまでスクロール
+                resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                document.getElementById('errorMessage').textContent = data.error;
+                errorArea.style.display = 'block';
+            }
+        } catch (error) {
+            document.getElementById('errorMessage').textContent =
+                '通信エラーが発生しました。ネットワーク接続を確認してください。';
+            errorArea.style.display = 'block';
+        } finally {
+            convertBtn.disabled = false;
+            convertBtn.innerHTML = '<i class="bi bi-arrow-right-circle"></i> 変換';
+        }
+    });
+
+    // コピーボタン
+    copyBtn.addEventListener('click', function() {
+        navigator.clipboard.writeText(currentMarkdown).then(() => {
+            copyBtn.innerHTML = '<i class="bi bi-check"></i> コピー完了';
+            setTimeout(() => {
+                copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> コピー';
+            }, 2000);
+        }).catch(() => {
+            // フォールバック: textareaを使用
+            const textarea = document.createElement('textarea');
+            textarea.value = currentMarkdown;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            copyBtn.innerHTML = '<i class="bi bi-check"></i> コピー完了';
+            setTimeout(() => {
+                copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> コピー';
+            }, 2000);
+        });
+    });
+
+    // ダウンロードボタン
+    downloadBtn.addEventListener('click', function() {
+        const blob = new Blob([currentMarkdown], { type: 'text/markdown; charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        // ファイル名に使えない文字を置換
+        const safeTitle = currentTitle.replace(/[\\/:*?"<>|]/g, '_');
+        a.download = `${safeTitle}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+});
+</script>
+{% endblock %}
