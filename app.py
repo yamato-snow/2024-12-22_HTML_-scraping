@@ -5,7 +5,7 @@ Flask を使用したWebアプリケーション。
 URLを入力してMarkdownに変換するWeb UIとREST APIを提供。
 """
 from flask import Flask, render_template, request, jsonify
-from converter import convert_url, parse_selector, SITE_SELECTORS
+from converter import convert_url, convert_html, parse_selector, SITE_SELECTORS
 
 app = Flask(__name__)
 
@@ -83,6 +83,82 @@ def api_convert():
                 "markdown": result.markdown,
                 "title": result.title,
                 "url": result.url,
+                "selector_used": result.selector_used
+            }
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "error": result.error
+        }), 400
+
+
+@app.route('/api/convert-file', methods=['POST'])
+def api_convert_file():
+    """
+    API: アップロードされたHTMLファイルをMarkdownに変換
+
+    Request: multipart/form-data
+        - file: HTMLファイル
+        - selector: カスタムセレクタ (optional)
+
+    Response (JSON):
+        {
+            "success": true,
+            "data": {
+                "markdown": "# Title\n...",
+                "title": "Article Title",
+                "selector_used": "default"
+            }
+        }
+    """
+    if 'file' not in request.files:
+        return jsonify({
+            "success": False,
+            "error": "ファイルが選択されていません"
+        }), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({
+            "success": False,
+            "error": "ファイルが選択されていません"
+        }), 400
+
+    # 拡張子チェック
+    allowed_extensions = {'.html', '.htm', '.xhtml'}
+    filename = file.filename
+    ext = '.' + filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+    if ext not in allowed_extensions:
+        return jsonify({
+            "success": False,
+            "error": "HTMLファイル（.html, .htm, .xhtml）のみ対応しています"
+        }), 400
+
+    # ファイル読み込み
+    try:
+        html_content = file.read().decode('utf-8')
+    except UnicodeDecodeError:
+        try:
+            file.seek(0)
+            html_content = file.read().decode('shift_jis')
+        except UnicodeDecodeError:
+            return jsonify({
+                "success": False,
+                "error": "ファイルのエンコーディングを判定できませんでした"
+            }), 400
+
+    selector = request.form.get('selector', '').strip() or None
+    custom_selector = parse_selector(selector)
+
+    result = convert_html(html_content, custom_selector, filename)
+
+    if result.success:
+        return jsonify({
+            "success": True,
+            "data": {
+                "markdown": result.markdown,
+                "title": result.title,
                 "selector_used": result.selector_used
             }
         })
