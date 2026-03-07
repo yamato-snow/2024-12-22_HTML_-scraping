@@ -263,6 +263,53 @@ def convert_url(url: str, custom_selector: Optional[tuple] = None, timeout: int 
     )
 
 
+def convert_html(html: str, custom_selector: Optional[tuple] = None, filename: Optional[str] = None) -> ConversionResult:
+    """
+    HTML文字列からMarkdownに変換する関数
+
+    Args:
+        html: HTMLコンテンツ文字列
+        custom_selector: カスタムセレクタ (tag, attrs) のタプル
+        filename: アップロードされたファイル名
+
+    Returns:
+        ConversionResult: 変換結果
+    """
+    if not html or not html.strip():
+        return ConversionResult(
+            success=False,
+            error="HTMLコンテンツが空です"
+        )
+
+    # セレクタ決定
+    if custom_selector:
+        tag, attrs = custom_selector
+        selector_name = "custom"
+    else:
+        tag, attrs = SITE_SELECTORS["default"]["selector"]
+        selector_name = "default"
+
+    # 本文抽出
+    content_html, title = extract_content(html, tag, attrs)
+    if not content_html:
+        return ConversionResult(
+            success=False,
+            title=title,
+            error="本文を抽出できませんでした。セレクタを変更してみてください",
+            selector_used=selector_name
+        )
+
+    # Markdown変換
+    markdown = convert_to_markdown(content_html)
+
+    return ConversionResult(
+        success=True,
+        markdown=markdown,
+        title=title or filename,
+        selector_used=selector_name
+    )
+
+
 def parse_selector(selector_str: str) -> Optional[tuple]:
     """
     セレクタ文字列をパースして(tag, attrs)タプルに変換

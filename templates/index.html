@@ -10,31 +10,81 @@
                 <h5 class="mb-0"><i class="bi bi-arrow-repeat"></i> HTML to Markdown 変換</h5>
             </div>
             <div class="card-body">
-                <form id="convertForm">
-                    <div class="mb-3">
-                        <label for="urlInput" class="form-label">URL <span class="text-danger">*</span></label>
-                        <input type="url" class="form-control" id="urlInput"
-                               placeholder="https://example.com/article" required>
-                        <div class="form-text">変換したいWebページのURLを入力してください</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="selectorInput" class="form-label">
-                            セレクタ <span class="text-muted">(オプション)</span>
-                        </label>
-                        <input type="text" class="form-control" id="selectorInput"
-                               placeholder="例: div.content, main, article#post">
-                        <div class="form-text">
-                            本文の抽出に使用するCSSセレクタ。空欄の場合は自動判定します。
-                        </div>
-                    </div>
-
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <button type="submit" class="btn btn-primary" id="convertBtn">
-                            <i class="bi bi-arrow-right-circle"></i> 変換
+                <!-- タブ切り替え -->
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="url-tab" data-bs-toggle="tab"
+                                data-bs-target="#url-pane" type="button" role="tab">
+                            <i class="bi bi-link-45deg"></i> URL入力
                         </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="file-tab" data-bs-toggle="tab"
+                                data-bs-target="#file-pane" type="button" role="tab">
+                            <i class="bi bi-file-earmark-code"></i> ファイルアップロード
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- URL入力タブ -->
+                    <div class="tab-pane fade show active" id="url-pane" role="tabpanel">
+                        <form id="convertForm">
+                            <div class="mb-3">
+                                <label for="urlInput" class="form-label">URL <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control" id="urlInput"
+                                       placeholder="https://example.com/article" required>
+                                <div class="form-text">変換したいWebページのURLを入力してください</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="selectorInput" class="form-label">
+                                    セレクタ <span class="text-muted">(オプション)</span>
+                                </label>
+                                <input type="text" class="form-control" id="selectorInput"
+                                       placeholder="例: div.content, main, article#post">
+                                <div class="form-text">
+                                    本文の抽出に使用するCSSセレクタ。空欄の場合は自動判定します。
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="submit" class="btn btn-primary" id="convertBtn">
+                                    <i class="bi bi-arrow-right-circle"></i> 変換
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                </form>
+
+                    <!-- ファイルアップロードタブ -->
+                    <div class="tab-pane fade" id="file-pane" role="tabpanel">
+                        <form id="uploadForm">
+                            <div class="mb-3">
+                                <label for="fileInput" class="form-label">HTMLファイル <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="fileInput"
+                                       accept=".html,.htm,.xhtml" required>
+                                <div class="form-text">変換したいHTMLファイルを選択してください（.html, .htm, .xhtml）</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="fileSelectorInput" class="form-label">
+                                    セレクタ <span class="text-muted">(オプション)</span>
+                                </label>
+                                <input type="text" class="form-control" id="fileSelectorInput"
+                                       placeholder="例: div.content, main, article#post">
+                                <div class="form-text">
+                                    本文の抽出に使用するCSSセレクタ。空欄の場合は自動判定します。
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="submit" class="btn btn-primary" id="uploadBtn">
+                                    <i class="bi bi-upload"></i> アップロードして変換
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -109,8 +159,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const copyBtn = document.getElementById('copyBtn');
     const downloadBtn = document.getElementById('downloadBtn');
 
+    const uploadForm = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const fileSelectorInput = document.getElementById('fileSelectorInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+
     let currentMarkdown = '';
     let currentTitle = '';
+
+    // 結果表示の共通処理
+    function showResult(data) {
+        currentMarkdown = data.data.markdown;
+        currentTitle = data.data.title || 'untitled';
+        resultTitle.textContent = data.data.title || '変換結果';
+        markdownOutput.textContent = currentMarkdown;
+        selectorUsed.textContent = data.data.selector_used;
+        resultArea.style.display = 'block';
+        resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function showError(message) {
+        document.getElementById('errorMessage').textContent = message;
+        errorArea.style.display = 'block';
+    }
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -134,27 +205,49 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (data.success) {
-                currentMarkdown = data.data.markdown;
-                currentTitle = data.data.title || 'untitled';
-
-                resultTitle.textContent = data.data.title || '変換結果';
-                markdownOutput.textContent = currentMarkdown;
-                selectorUsed.textContent = data.data.selector_used;
-                resultArea.style.display = 'block';
-
-                // 結果エリアまでスクロール
-                resultArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                showResult(data);
             } else {
-                document.getElementById('errorMessage').textContent = data.error;
-                errorArea.style.display = 'block';
+                showError(data.error);
             }
         } catch (error) {
-            document.getElementById('errorMessage').textContent =
-                '通信エラーが発生しました。ネットワーク接続を確認してください。';
-            errorArea.style.display = 'block';
+            showError('通信エラーが発生しました。ネットワーク接続を確認してください。');
         } finally {
             convertBtn.disabled = false;
             convertBtn.innerHTML = '<i class="bi bi-arrow-right-circle"></i> 変換';
+        }
+    });
+
+    // ファイルアップロード処理
+    uploadForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 変換中...';
+        resultArea.style.display = 'none';
+        errorArea.style.display = 'none';
+
+        try {
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('selector', fileSelectorInput.value);
+
+            const response = await fetch('/api/convert-file', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showResult(data);
+            } else {
+                showError(data.error);
+            }
+        } catch (error) {
+            showError('通信エラーが発生しました。ネットワーク接続を確認してください。');
+        } finally {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="bi bi-upload"></i> アップロードして変換';
         }
     });
 
